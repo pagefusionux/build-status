@@ -1,0 +1,12 @@
+.BuildStatus {
+  text-align: left;
+}
+
+ul li {
+  list-style-type: none;
+}
+
+.loadingImg {
+  width: 50px;
+  height: 50px
+}
