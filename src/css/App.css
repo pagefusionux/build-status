@@ -3,22 +3,21 @@
 }
 
 .header-container {
-  margin: 0 auto;
-  width: 40%;
-  padding: 20px;
-}
-
-.header-container h2 {
-  margin-bottom: 0;
+  width: 100%;
 }
 
 .status-container {
   margin: 0 auto;
   width: 40%;
-  border: #aaa;
   background-color: #eee;
   border-radius: 10px;
   padding: 20px;
 }
 
+@media (max-width: 640px) {
+
+  .status-container {
+    width: auto;
+  }
+}
 
