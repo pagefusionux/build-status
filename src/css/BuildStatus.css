@@ -58,6 +58,11 @@
   height: 50px
 }
 
+.loadingImgSm {
+  width: 16px;
+  height: 16px
+}
+
 .vsep {
   width: 100%;
   height: 0;
@@ -113,6 +118,21 @@
 }
 
 .bar-failure {
+   z-index: 1;
+   position: absolute;
+   top: 0;
+   left: 0;
+   height: 50px;
+   border-radius: 5px;
+   border-top-right-radius: 0;
+   border-bottom-right-radius: 0;
+   background: #DE0404 linear-gradient(to top, #F00505, #DE0404) repeat-x;
+   box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+   box-sizing: border-box;
+   transition: width 0.6s ease;
+ }
+
+.bar-aborted {
   z-index: 1;
   position: absolute;
   top: 0;
@@ -121,7 +141,7 @@
   border-radius: 5px;
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
-  background: #DE0404 linear-gradient(to top, #F00505, #DE0404) repeat-x;
+  background: #E4B912 linear-gradient(to top, #D5AD11, #E4B912) repeat-x;
   box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.15);
   box-sizing: border-box;
   transition: width 0.6s ease;

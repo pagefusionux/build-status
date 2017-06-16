@@ -6,6 +6,11 @@ import '../css/BuildStatus.css';
 class BuildStatus extends Component {
   constructor(props) {
     super(props);
+
+    this.apiUrl = 'http://localhost.jenkinsapi'; // location of the API that queries the Jenkins build server
+    this.overrideReqHost = ''; // for testing (override window.location.host)
+    this.overrideReqBranch = ''; // for testing (override the branch to grab info for)
+
     this.state = {
       loading: 1,
       error: '',
@@ -17,15 +22,18 @@ class BuildStatus extends Component {
     }
   }
 
+  // TODO: grab commit information for build requested
+  /*
   getCommits = () => {
 
   };
+  */
 
   getBuildStatus = () => {
     const main = this;
     let error = '';
 
-    fetch(`http://localhost.jenkinsapi?req_host=${window.location.host}`)
+    fetch(`${this.apiUrl}?req_host=${window.location.host}&override_host=${this.overrideReqHost}&override_branch=${this.overrideReqBranch}`)
     .then((response) => {
       return response;
     })
@@ -41,6 +49,8 @@ class BuildStatus extends Component {
       return response.json();
     })
     .then((data) => {
+
+      console.log(data);
 
       // check for API response error messages
       if (({}.toString.call(data.messages) === '[object Object]')) {
@@ -67,10 +77,15 @@ class BuildStatus extends Component {
           duration: data.duration,
         });
 
-        if (data.result !== 'SUCCESS' && data.result !== 'FAILURE') {
-          setTimeout(() => {
+        if (data.result !== 'SUCCESS' && data.result !== 'FAILURE' && data.result !== 'ABORTED') {
+          setTimeout(() => { // update every 3 seconds
               this.getBuildStatus();
             }, 3000
+          );
+        } else { // check every 30 seconds for any update (or re-build)
+          setTimeout(() => {
+              this.getBuildStatus();
+            }, 30000
           );
         }
       }
@@ -152,7 +167,7 @@ class BuildStatus extends Component {
         percentage = 100;
       }
 
-      // handle error
+      // display any error
       if (error) {
         resultOutput = (
           <p>Error: {error}</p>
@@ -161,9 +176,9 @@ class BuildStatus extends Component {
 
         // duration
         if (duration > 0) {
-          durationText = `Duration: ${durationConv}`;
+          durationText = `Build time: ${durationConv}`;
         } else {
-          durationText = `Estimated duration: ${estimatedDurationConv}`;
+          durationText = `(estimate: ${estimatedDurationConv})`;
         }
 
         let percentageText = `${percentage}%`
@@ -182,10 +197,10 @@ class BuildStatus extends Component {
           resultText = 'COMPLETE';
           showTimeElapsed = false;
 
-        } else if (percentage > 80 && result !== 'SUCCESS' && result !== 'FAILURE') {
+        } else if (percentage > 80 && result !== 'SUCCESS' && result !== 'FAILURE' && result !== 'ABORTED') {
           resultText = 'DEPLOYING';
 
-        } else if (percentage === 100 && result !== 'SUCCESS' && result !== 'FAILURE') { // estimatedDuration passed
+        } else if (percentage === 100 && result !== 'SUCCESS' && result !== 'FAILURE' && result !== 'ABORTED') { // estimatedDuration passed
           barTopRightRadius = 5;
           barBottomRightRadius = 5;
           resultText = 'STILL DEPLOYING...';
@@ -196,6 +211,14 @@ class BuildStatus extends Component {
           barBottomRightRadius = 5;
           barClassName = 'bar-failure';
           resultText = 'BUILD FAILED';
+          percentageText = resultText;
+          showTimeElapsed = false;
+
+        } else if (result === 'ABORTED') {
+          barTopRightRadius = 5;
+          barBottomRightRadius = 5;
+          barClassName = 'bar-aborted';
+          resultText = 'ABORTED';
           percentageText = resultText;
           showTimeElapsed = false;
 
@@ -227,7 +250,7 @@ class BuildStatus extends Component {
         let endTimestampText = '';
 
         if (showTimeElapsed === true) {
-          timeElapsedText = `Elapsed: ${timeElapsed}, `;
+          timeElapsedText = `Time elapsed: ${timeElapsed}, `;
         } else {
           endTimestampText = `<strong>Ended:</strong> ${endTimestampConv}<br />`;
         }
