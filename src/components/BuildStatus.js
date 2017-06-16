@@ -7,14 +7,16 @@ class BuildStatus extends Component {
   constructor(props) {
     super(props);
 
-    this.apiUrl = 'http://localhost.jenkinsapi'; // location of the API that queries the Jenkins build server
-    this.overrideReqHost = ''; // for testing (override window.location.host)
-    this.overrideReqBranch = ''; // for testing (override the branch to grab info for)
+    this.apiUrl = 'http://localhost.buildapi'; // location of the API that queries the Jenkins build server
+    this.overrideReqHost = 'centurylinkquote.dev.aws.clearlink.com'; // for testing (override window.location.host)
 
     this.state = {
       loading: 1,
       error: '',
       number: 0,
+      project: '',
+      reqHost: '',
+      branch: '',
       result: undefined,
       timestamp: undefined,
       estimatedDuration: 0,
@@ -33,7 +35,7 @@ class BuildStatus extends Component {
     const main = this;
     let error = '';
 
-    fetch(`${this.apiUrl}?req_host=${window.location.host}&override_host=${this.overrideReqHost}&override_branch=${this.overrideReqBranch}`)
+    fetch(`${this.apiUrl}?req_host=${window.location.host}&override_host=${this.overrideReqHost}`)
     .then((response) => {
       return response;
     })
@@ -71,6 +73,9 @@ class BuildStatus extends Component {
         main.setState({
           error: null,
           number: data.number,
+          project: data.api_project,
+          reqHost: data.req_host,
+          branch: data.branch,
           result: data.result,
           timestamp: data.timestamp,
           estimatedDuration: data.estimatedDuration,
@@ -107,6 +112,9 @@ class BuildStatus extends Component {
       error,
       loading,
       number,
+      project,
+      reqHost,
+      branch,
       result,
       timestamp,
       estimatedDuration,
@@ -265,6 +273,7 @@ class BuildStatus extends Component {
 
             <div className="status-areas">
               <div className="status-left">
+                <strong>Branch:</strong> {project}/{branch} <br />
                 <strong>Started:</strong> {timestampConv}<br />
                 <div dangerouslySetInnerHTML={outputHTMLStr(endTimestampText)} />
                 <strong>Status:</strong> {resultText}<br />
