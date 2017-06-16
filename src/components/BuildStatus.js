@@ -8,7 +8,6 @@ class BuildStatus extends Component {
     super(props);
     this.state = {
       loading: 1,
-      secondsElapsed: 0,
       error: '',
       number: 0,
       result: undefined,
@@ -18,52 +17,80 @@ class BuildStatus extends Component {
     }
   }
 
+  getCommits = () => {
+
+  };
+
   getBuildStatus = () => {
     const main = this;
+    let error = '';
 
-    const reqHost = window.location.host;
-
-    fetch(`http://localhost.jenkinsapi?req_host=${reqHost}`)
+    fetch(`http://localhost.jenkinsapi?req_host=${window.location.host}`)
     .then((response) => {
       return response;
     })
     .then((response) => {
-      setTimeout(() => {
-        main.setState({
-          loading: 0
-        });
-      }, 300);
+
+      if (this.state.loading) {
+        setTimeout(() => {
+          main.setState({
+            loading: 0
+          });
+        }, 300);
+      }
       return response.json();
     })
     .then((data) => {
 
-      //console.log(data);
+      // check for API response error messages
+      if (({}.toString.call(data.messages) === '[object Object]')) {
+        for (let p in data.messages) {
+          if (data.messages.hasOwnProperty(p)) {
+            console.log(data.messages);
+          }
+        }
 
-      main.setState({
-        secondsElapsed: this.state.secondsElapsed + 1,
-        error: null,
-        number: data.number,
-        result: data.result,
-        timestamp: data.timestamp,
-        estimatedDuration: data.estimatedDuration,
-        duration: data.duration,
-      });
+        main.setState({
+          error: 'API exception occurred. (See console log.)'
+        });
+        error = 1;
+      }
+
+      if (!error) {
+
+        main.setState({
+          error: null,
+          number: data.number,
+          result: data.result,
+          timestamp: data.timestamp,
+          estimatedDuration: data.estimatedDuration,
+          duration: data.duration,
+        });
+
+        if (data.result !== 'SUCCESS' && data.result !== 'FAILURE') {
+          setTimeout(() => {
+              this.getBuildStatus();
+            }, 3000
+          );
+        }
+      }
+
     })
     .catch(() => {
       main.setState({
-        error: 'error'
+        error: 'Fetch API failed (general failure).'
       });
     })
   };
+
   componentDidMount() {
-    //this.getBuildStatus();
+    this.getBuildStatus();
   };
   render() {
 
     const {
       error,
       loading,
-      secondsElapsed,
       number,
       result,
       timestamp,
@@ -75,19 +102,41 @@ class BuildStatus extends Component {
     let percentage = 0;
     let durationText = '';
     let resultText = '';
+    let timeElapsedText = '';
+    let endTimestamp = 0;
+    let endTimestampConv = '';
 
-    // convert timestamp
-    const timestampConv = moment(timestamp).format('MMM D YYYY h:mm A');
-    //let timestampEnd = 0;
+    // convert timestamp to readable date
+    const timestampConv = moment(timestamp).format('MMM D, YYYY; h:mm:ss A');
 
-    // convert to seconds/minutes
-    const durationTempConv = moment.duration(duration);
+    // compare now() to timestamp; convert timeElapsed to minutes/seconds
+    const timestampElapsed = new Date().getTime() - timestamp;
 
-    //console.log('durationTempConv: ', durationTempConv);
+    // convert timestampElapsed to minutes/seconds
+    const timeElapsedConv = moment.duration(timestampElapsed);
+    let timeElapsed = '';
+    if (timeElapsedConv.minutes() > 0) {
+      timeElapsed = timeElapsedConv.minutes() + 'm ' + timeElapsedConv.seconds() + 's';
+    } else {
+      timeElapsed = timeElapsedConv.seconds() + 's';
+    }
 
-    const durationConv = durationTempConv.minutes() + 'm ' + durationTempConv.seconds() + 's';
+    //console.log('timeElapsed (since timestamp): ', timeElapsed);
+
+    // convert duration to minutes/seconds
+    const durationMin = moment.duration(duration).minutes();
+    const durationSec = moment.duration(duration).seconds();
+    const durationConv = durationMin + 'm ' + durationSec + 's';
+
+    if (duration > 0) {
+      endTimestamp = timestamp + ((durationMin * 60) + durationSec);
+      endTimestampConv = moment(endTimestamp).add(durationMin, 'm').add(durationSec, 's').format('MMM D, YYYY; h:mm:ss A');
+    }
+
+    // convert estimatedDuration to minutes/seconds
     const estimatedDurationTempConv = moment.duration(estimatedDuration);
     const estimatedDurationConv = estimatedDurationTempConv.minutes() + 'm ' + estimatedDurationTempConv.seconds() + 's';
+
 
     if (loading) {
       resultOutput = (
@@ -95,11 +144,15 @@ class BuildStatus extends Component {
       );
     } else {
 
+      // get percentage (using time started and estimated duration)
       percentage = Math.round((new Date().getTime() - timestamp) / estimatedDuration * 100);
+
+      // limit percentage to 100
       if (percentage > 100 || duration > 0) {
         percentage = 100;
       }
 
+      // handle error
       if (error) {
         resultOutput = (
           <p>Error: {error}</p>
@@ -110,13 +163,15 @@ class BuildStatus extends Component {
         if (duration > 0) {
           durationText = `Duration: ${durationConv}`;
         } else {
-          durationText = `Elapsed: ${secondsElapsed}, Estimated duration: ${estimatedDurationConv}`;
+          durationText = `Estimated duration: ${estimatedDurationConv}`;
         }
 
+        let percentageText = `${percentage}%`
         let barClassName = 'bar';
         let barTopRightRadius = 0;
         let barBottomRightRadius = 0;
         let percentageColor = '#000';
+        let showTimeElapsed = true;
 
         //percentage = 35; // for testing
 
@@ -124,24 +179,26 @@ class BuildStatus extends Component {
           barTopRightRadius = 5;
           barBottomRightRadius = 5;
           barClassName = 'bar-success';
-          //barClassName = 'bar';
           resultText = 'COMPLETE';
+          showTimeElapsed = false;
 
-          /*
-          let tsStart = moment(timestamp);
-          //console.log('tsStart: ', tsStart);
+        } else if (percentage > 80 && result !== 'SUCCESS' && result !== 'FAILURE') {
+          resultText = 'DEPLOYING';
 
-          const sDuration = duration / 1000;
+        } else if (percentage === 100 && result !== 'SUCCESS' && result !== 'FAILURE') { // estimatedDuration passed
+          barTopRightRadius = 5;
+          barBottomRightRadius = 5;
+          resultText = 'STILL DEPLOYING...';
+          percentageText = 'Please wait...';
 
-          //console.log('sDuration: ', sDuration);
+        } else if (result === 'FAILURE') {
+          barTopRightRadius = 5;
+          barBottomRightRadius = 5;
+          barClassName = 'bar-failure';
+          resultText = 'BUILD FAILED';
+          percentageText = resultText;
+          showTimeElapsed = false;
 
-          timestampEnd = moment(tsStart, 'hh:mm:ss A')
-            .add(durationTempConv.minutes(), 'minutes')
-            .add(durationTempConv.seconds(), 'seconds')
-            .format('LTS');
-
-          //console.log('tsEnd: ', tsEnd);
-          */
         } else {
           resultText = 'BUILDING';
         }
@@ -161,12 +218,24 @@ class BuildStatus extends Component {
           color: `${percentageColor}`,
         };
 
+        // place a wbr tag in hostname so it can wrap decently
+        let reqHostStr = window.location.host;
+        reqHostStr = reqHostStr.replace('.clearlink', '<wbr/>.clearlink');
 
+        function outputHTMLStr(str) { return {__html: str}; };
+
+        let endTimestampText = '';
+
+        if (showTimeElapsed === true) {
+          timeElapsedText = `Elapsed: ${timeElapsed}, `;
+        } else {
+          endTimestampText = `<strong>Ended:</strong> ${endTimestampConv}<br />`;
+        }
 
         resultOutput = (
           <div>
             <div className="host">
-              {window.location.host}
+              <div dangerouslySetInnerHTML={outputHTMLStr(reqHostStr)} />
             </div>
 
             <div className="vsep"></div>
@@ -174,6 +243,7 @@ class BuildStatus extends Component {
             <div className="status-areas">
               <div className="status-left">
                 <strong>Started:</strong> {timestampConv}<br />
+                <div dangerouslySetInnerHTML={outputHTMLStr(endTimestampText)} />
                 <strong>Status:</strong> {resultText}<br />
               </div>
               <div className="status-right">
@@ -186,23 +256,16 @@ class BuildStatus extends Component {
             <div className="vsep"></div>
 
             <div className="duration">
-              {durationText}
+              {timeElapsedText} {durationText}
             </div>
             <div className="progress">
-              <div className="percentage" style={percentageStyle}>{percentage}%</div>
+              <div className="percentage" style={percentageStyle}>{percentageText}</div>
               <div className={barClassName} style={barStyle}></div>
             </div>
+
           </div>
         );
       }
-    }
-
-    if (percentage < 100 && result !== 'SUCCESS') {
-      setTimeout(() => {
-          this.getBuildStatus();
-          console.log('seconds: ', this.state.secondsElapsed);
-        }, 1000
-      );
     }
 
     return (
