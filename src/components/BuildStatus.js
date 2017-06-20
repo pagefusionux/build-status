@@ -8,7 +8,7 @@ class BuildStatus extends Component {
   constructor(props) {
     super(props);
 
-    this.apiUrl = 'http://localhost.buildapi'; // location of the API that queries the Jenkins build server
+    this.bapiUrl = 'http://localhost.buildapi'; // location of the API that queries the Jenkins build server
     this.overrideHost = 'west.frontier.com'; // for testing (override window.location.host)
 
     this.state = {
@@ -34,7 +34,7 @@ class BuildStatus extends Component {
       host = this.overrideHost;
     }
 
-    fetch(`${this.apiUrl}?host=${host}&option=commits`)
+    fetch(`${this.bapiUrl}?host=${host}&option=commits`)
     .then((response) => {
       return response.json();
     })
@@ -80,7 +80,7 @@ class BuildStatus extends Component {
       host = this.overrideHost;
     }
 
-    fetch(`${this.apiUrl}?host=${host}&option=status`)
+    fetch(`${this.bapiUrl}?host=${host}&option=status`)
     .then((response) => {
 
       if (this.state.loading) {
