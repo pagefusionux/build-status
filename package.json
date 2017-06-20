@@ -5,10 +5,13 @@
   "dependencies": {
     "moment": "^2.18.1",
     "react": "^15.6.1",
-    "react-dom": "^15.6.1"
+    "react-dom": "^15.6.1",
+    "react-json-tree": "^0.10.9"
   },
   "devDependencies": {
-    "@just-boris/preact-scripts": "1.0.7"
+    "@just-boris/preact-scripts": "1.0.7",
+    "node-sass": "^4.5.3",
+    "sass-loader": "^6.0.6"
   },
   "scripts": {
     "start": "react-scripts start",

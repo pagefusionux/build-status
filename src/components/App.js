@@ -9,9 +9,8 @@ class App extends Component {
         <div className="header-container">
           <h2>Build Status</h2>
         </div>
-        <div className="status-container">
-          <BuildStatus/>
-        </div>
+
+        <BuildStatus/>
       </div>
     );
   }

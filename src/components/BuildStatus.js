@@ -1,4 +1,5 @@
 import { h, Component } from 'preact';
+import JSONTree from 'react-json-tree'
 import loadingImg from '../images/loading.svg';
 import moment from 'moment';
 import '../css/BuildStatus.css';
@@ -8,15 +9,16 @@ class BuildStatus extends Component {
     super(props);
 
     this.apiUrl = 'http://localhost.buildapi'; // location of the API that queries the Jenkins build server
-    this.overrideReqHost = 'centurylinkquote.dev.aws.clearlink.com'; // for testing (override window.location.host)
+    this.overrideHost = 'west.frontier.com'; // for testing (override window.location.host)
 
     this.state = {
       loading: 1,
       error: '',
       number: 0,
       project: '',
-      reqHost: '',
+      host: window.location.host,
       branch: '',
+      commits: '',
       result: undefined,
       timestamp: undefined,
       estimatedDuration: 0,
@@ -24,26 +26,66 @@ class BuildStatus extends Component {
     }
   }
 
-  // TODO: grab commit information for build requested
-  /*
   getCommits = () => {
-
-  };
-  */
-
-  getBuildStatus = () => {
-    const main = this;
+    let host = window.location.host;
     let error = '';
 
-    fetch(`${this.apiUrl}?req_host=${window.location.host}&override_host=${this.overrideReqHost}`)
+    if (this.overrideHost) {
+      host = this.overrideHost;
+    }
+
+    fetch(`${this.apiUrl}?host=${host}&option=commits`)
     .then((response) => {
-      return response;
+      return response.json();
     })
+    .then((data) => {
+
+      //console.log("API response (commits): ", data);
+
+      // check for API response error messages
+      /*
+      if (({}.toString.call(data.messages) === '[object Object]')) {
+        for (let p in data.messages) {
+          if (data.messages.hasOwnProperty(p)) {
+            console.log(data.messages);
+          }
+        }
+
+        this.setState({
+          error: 'API exception occurred. (See console log.)'
+        });
+        error = 1;
+      }
+      */
+
+      if (!error) {
+        this.setState({
+          commits: data.changeSets
+        });
+      }
+
+    })
+    .catch(() => {
+      this.setState({
+        error: 'Fetch API failed (general failure).'
+      });
+    })
+  };
+
+  getBuildStatus = () => {
+    let host = window.location.host;
+    let error = '';
+
+    if (this.overrideHost) {
+      host = this.overrideHost;
+    }
+
+    fetch(`${this.apiUrl}?host=${host}&option=status`)
     .then((response) => {
 
       if (this.state.loading) {
         setTimeout(() => {
-          main.setState({
+          this.setState({
             loading: 0
           });
         }, 300);
@@ -52,7 +94,7 @@ class BuildStatus extends Component {
     })
     .then((data) => {
 
-      console.log(data);
+      console.log("API response (status): ", data);
 
       // check for API response error messages
       if (({}.toString.call(data.messages) === '[object Object]')) {
@@ -62,7 +104,7 @@ class BuildStatus extends Component {
           }
         }
 
-        main.setState({
+        this.setState({
           error: 'API exception occurred. (See console log.)'
         });
         error = 1;
@@ -70,11 +112,11 @@ class BuildStatus extends Component {
 
       if (!error) {
 
-        main.setState({
+        this.setState({
           error: null,
           number: data.number,
-          project: data.api_project,
-          reqHost: data.req_host,
+          project: data.project,
+          host: data.host,
           branch: data.branch,
           result: data.result,
           timestamp: data.timestamp,
@@ -97,7 +139,7 @@ class BuildStatus extends Component {
 
     })
     .catch(() => {
-      main.setState({
+      this.setState({
         error: 'Fetch API failed (general failure).'
       });
     })
@@ -105,6 +147,7 @@ class BuildStatus extends Component {
 
   componentDidMount() {
     this.getBuildStatus();
+    this.getCommits();
   };
   render() {
 
@@ -113,8 +156,9 @@ class BuildStatus extends Component {
       loading,
       number,
       project,
-      reqHost,
+      host,
       branch,
+      commits,
       result,
       timestamp,
       estimatedDuration,
@@ -250,8 +294,8 @@ class BuildStatus extends Component {
         };
 
         // place a wbr tag in hostname so it can wrap decently
-        let reqHostStr = window.location.host;
-        reqHostStr = reqHostStr.replace('.clearlink', '<wbr/>.clearlink');
+        let hostStr = host;
+        hostStr = hostStr.replace('.clearlink', '<wbr/>.clearlink');
 
         function outputHTMLStr(str) { return {__html: str}; };
 
@@ -265,36 +309,42 @@ class BuildStatus extends Component {
 
         resultOutput = (
           <div>
-            <div className="host">
-              <div dangerouslySetInnerHTML={outputHTMLStr(reqHostStr)} />
-            </div>
-
-            <div className="vsep"></div>
-
-            <div className="status-areas">
-              <div className="status-left">
-                <strong>Branch:</strong> {project}/{branch} <br />
-                <strong>Started:</strong> {timestampConv}<br />
-                <div dangerouslySetInnerHTML={outputHTMLStr(endTimestampText)} />
-                <strong>Status:</strong> {resultText}<br />
+            <div className="status-container">
+              <div className="host">
+                <div dangerouslySetInnerHTML={outputHTMLStr(hostStr)} />
               </div>
-              <div className="status-right">
-                <div className="build-number">
-                  #{number}
+
+              <div className="vsep"></div>
+
+              <div className="status-areas">
+                <div className="status-left">
+                  <strong>Branch:</strong> {project}/{branch} <br />
+                  <strong>Started:</strong> {timestampConv}<br />
+                  <div dangerouslySetInnerHTML={outputHTMLStr(endTimestampText)} />
+                  <strong>Status:</strong> {resultText}<br />
+                </div>
+                <div className="status-right">
+                  <div className="build-number">
+                    #{number}
+                  </div>
                 </div>
               </div>
+
+              <div className="vsep"></div>
+
+              <div className="duration">
+                {timeElapsedText} {durationText}
+              </div>
+              <div className="progress">
+                <div className="percentage" style={percentageStyle}>{percentageText}</div>
+                <div className={barClassName} style={barStyle}></div>
+              </div>
             </div>
 
-            <div className="vsep"></div>
-
-            <div className="duration">
-              {timeElapsedText} {durationText}
+            <div className="commits-container">
+              Commit info:<br />
+              <JSONTree data={commits} invertTheme={true} />
             </div>
-            <div className="progress">
-              <div className="percentage" style={percentageStyle}>{percentageText}</div>
-              <div className={barClassName} style={barStyle}></div>
-            </div>
-
           </div>
         );
       }

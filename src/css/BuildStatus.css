@@ -2,6 +2,39 @@
 
 }
 
+.status-container {
+  margin: 0 auto;
+  width: 450px;
+  background-color: #eee;
+  border-radius: 10px;
+  padding: 20px;
+}
+
+@media (max-width: 640px) {
+  .status-container {
+    width: auto;
+  }
+}
+
+.commits-container {
+  color: #aaa;
+  text-align: left;
+  margin: 0 auto;
+  margin-top: 20px;
+  width: 490px;
+}
+
+.commits-container ul li {
+  background-color: #fff;
+}
+
+
+@media (max-width: 640px) {
+  .commits-container {
+    width: auto;
+  }
+}
+
 .host {
   font-size: 1.2em;
   font-weight: bold;
