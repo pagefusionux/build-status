@@ -2,8 +2,8 @@
 
 **Description**
 
-This app works in conjunction with its partner PHP app (_build-api_ or BAPI). It queries
-BAPI (used as an authentication proxy) which queries the Jenkins API using cURL. The Jenkins 
+This app works in conjunction with its partner PHP app _build-api_ (see https://github.com/pagefusionux/build-api). It queries
+build-api (used as an authentication proxy) which queries the Jenkins API using cURL. The Jenkins 
 server responds with json object that contains build status information. This app just outputs 
 the returned information in a pretty way.
 
