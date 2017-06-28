@@ -14,19 +14,17 @@ class BuildStatus extends Component {
     this.state = {
       loading: 1,
       error: '',
-      number: 0,
-      project: '',
       host: window.location.host,
-      branch: '',
-      commits: '',
-      result: undefined,
-      timestamp: undefined,
-      estimatedDuration: 0,
-      duration: 0
+      project: '',
+      branches: [],
+      commitsHotfix: [],
+      commitsDev: [],
+      commitsRelease: [],
+      commitsProd: [],
     }
   }
 
-  getCommits = () => {
+  getStatus(option) {
     let host = window.location.host;
     let error = '';
 
@@ -34,53 +32,7 @@ class BuildStatus extends Component {
       host = this.overrideHost;
     }
 
-    fetch(`${this.bapiUrl}?host=${host}&option=commits`)
-    .then((response) => {
-      return response.json();
-    })
-    .then((data) => {
-
-      //console.log("API response (commits): ", data);
-
-      // check for API response error messages
-      /*
-      if (({}.toString.call(data.messages) === '[object Object]')) {
-        for (let p in data.messages) {
-          if (data.messages.hasOwnProperty(p)) {
-            console.log(data.messages);
-          }
-        }
-
-        this.setState({
-          error: 'API exception occurred. (See console log.)'
-        });
-        error = 1;
-      }
-      */
-
-      if (!error) {
-        this.setState({
-          commits: data.changeSets
-        });
-      }
-
-    })
-    .catch(() => {
-      this.setState({
-        error: 'Fetch API failed (general failure).'
-      });
-    })
-  };
-
-  getBuildStatus = () => {
-    let host = window.location.host;
-    let error = '';
-
-    if (this.overrideHost) {
-      host = this.overrideHost;
-    }
-
-    fetch(`${this.bapiUrl}?host=${host}&option=status`)
+    fetch(`${this.bapiUrl}?host=${host}&option=${option}`)
     .then((response) => {
 
       if (this.state.loading) {
@@ -112,26 +64,46 @@ class BuildStatus extends Component {
 
       if (!error) {
 
-        this.setState({
-          error: null,
-          number: data.number,
-          project: data.project,
-          host: data.host,
-          branch: data.branch,
-          result: data.result,
-          timestamp: data.timestamp,
-          estimatedDuration: data.estimatedDuration,
-          duration: data.duration,
-        });
+        if (option === 'status-commits') {
+          this.setState({
+            error: null,
+            host: data.host,
+            project: data.project,
+            branches: data.branches,
+            commitsHotfix: data.branches.hotfix.lastBuild.changeSets,
+            commitsDev: data.branches.dev.lastBuild.changeSets,
+            commitsRelease: data.branches.release.lastBuild.changeSets,
+            commitsProd: data.branches.production.lastBuild.changeSets,
+          });
+        } else {
+          this.setState({
+            error: null,
+            host: data.host,
+            project: data.project,
+            branches: data.branches,
+          });
+        }
+        let continueToUpdateStatus = 1;
 
-        if (data.result !== 'SUCCESS' && data.result !== 'FAILURE' && data.result !== 'ABORTED') {
+        if ((data.branches.hotfix.lastBuild.result === 'SUCCESS' || data.branches.hotfix.lastBuild.result === 'FAILURE' || data.branches.hotfix.lastBuild.result === 'ABORTED')
+            &&
+            (data.branches.dev.lastBuild.result === 'SUCCESS' || data.branches.dev.lastBuild.result === 'FAILURE' || data.branches.dev.lastBuild.result === 'ABORTED')
+            &&
+            (data.branches.release.lastBuild.result === 'SUCCESS' || data.branches.release.lastBuild.result === 'FAILURE' || data.branches.release.lastBuild.result === 'ABORTED')
+            &&
+            (data.branches.production.lastBuild.result === 'SUCCESS' || data.branches.production.lastBuild.result === 'FAILURE' || data.branches.production.lastBuild.result === 'ABORTED')) {
+
+              continueToUpdateStatus = 0;
+        }
+
+        if (continueToUpdateStatus === 1) {
           setTimeout(() => { // update every 3 seconds
-              this.getBuildStatus();
-            }, 3000
+              this.getStatus('status');
+            }, 5000
           );
-        } else { // check every 30 seconds for any update (or re-build)
+        } else { // check every 30 seconds for any update (or re-build); and retrieve commit info
           setTimeout(() => {
-              this.getBuildStatus();
+              this.getStatus('status-commits');
             }, 30000
           );
         }
@@ -143,216 +115,227 @@ class BuildStatus extends Component {
         error: 'Fetch API failed (general failure).'
       });
     })
-  };
+  }
 
   componentDidMount() {
-    this.getBuildStatus();
-    this.getCommits();
+    this.getStatus('status-commits');
   };
+
   render() {
 
-    const {
+    let {
       error,
       loading,
-      number,
       project,
       host,
-      branch,
-      commits,
-      result,
-      timestamp,
-      estimatedDuration,
-      duration
+      branches,
     } = this.state;
 
-    let resultOutput = '';
-    let percentage = 0;
-    let durationText = '';
-    let resultText = '';
-    let timeElapsedText = '';
-    let endTimestamp = 0;
-    let endTimestampConv = '';
+    function outputHTMLStr(str) {
+      return {__html: str};
+    };
 
-    // convert timestamp to readable date
-    const timestampConv = moment(timestamp).format('MMM D, YYYY; h:mm:ss A');
+    let commits = [];
+    let branchRows = [];
+    let hostStr = '';
 
-    // compare now() to timestamp; convert timeElapsed to minutes/seconds
-    const timestampElapsed = new Date().getTime() - timestamp;
+    if (typeof branches.hotfix !== 'undefined') {
 
-    // convert timestampElapsed to minutes/seconds
-    const timeElapsedConv = moment.duration(timestampElapsed);
-    let timeElapsed = '';
-    if (timeElapsedConv.minutes() > 0) {
-      timeElapsed = timeElapsedConv.minutes() + 'm ' + timeElapsedConv.seconds() + 's';
-    } else {
-      timeElapsed = timeElapsedConv.seconds() + 's';
-    }
+      let branchName = '';
+      for (let r = 0; r < 4; r+=1) {
 
-    //console.log('timeElapsed (since timestamp): ', timeElapsed);
+        let lastBuild = {};
 
-    // convert duration to minutes/seconds
-    const durationMin = moment.duration(duration).minutes();
-    const durationSec = moment.duration(duration).seconds();
-    const durationConv = durationMin + 'm ' + durationSec + 's';
+        if (r === 0) {
+          lastBuild = branches.hotfix.lastBuild;
+          commits = this.state.commitsHotfix;
+          branchName = 'hotfix';
+        } else if (r === 1) {
+          lastBuild = branches.dev.lastBuild;
+          commits = this.state.commitsDev;
+          branchName = 'dev';
+        } else if (r === 2) {
+          lastBuild = branches.release.lastBuild;
+          commits = this.state.commitsRelease;
+          branchName = 'release';
+        } else if (r === 3) {
+          lastBuild = branches.production.lastBuild;
+          commits = this.state.commitsProd;
+          branchName = 'production';
+        }
 
-    if (duration > 0) {
-      endTimestamp = timestamp + ((durationMin * 60) + durationSec);
-      endTimestampConv = moment(endTimestamp).add(durationMin, 'm').add(durationSec, 's').format('MMM D, YYYY; h:mm:ss A');
-    }
+        //console.log('lastBuild', lastBuild);
 
-    // convert estimatedDuration to minutes/seconds
-    const estimatedDurationTempConv = moment.duration(estimatedDuration);
-    const estimatedDurationConv = estimatedDurationTempConv.minutes() + 'm ' + estimatedDurationTempConv.seconds() + 's';
+        let number = lastBuild.number;
+        let result = lastBuild.result;
+        let timestamp = lastBuild.timestamp;
+        let estimatedDuration = lastBuild.estimatedDuration;
+        let duration = lastBuild.duration;
 
+        let percentage = 0;
+        let resultText = '';
+        let endTimestamp = 0;
+        let endTimestampConv = '';
 
-    if (loading) {
-      resultOutput = (
-        <p className="loading-container"><img className="loadingImg" src={loadingImg} alt="Loading..." /></p>
-      );
-    } else {
+        // convert timestamp to readable date
+        const timestampConv = moment(timestamp).format('MMM D, YYYY; h:mm:ss A');
 
-      // get percentage (using time started and estimated duration)
-      percentage = Math.round((new Date().getTime() - timestamp) / estimatedDuration * 100);
+        // compare now() to timestamp; convert timeElapsed to minutes/seconds
+        const timestampElapsed = new Date().getTime() - timestamp;
 
-      // limit percentage to 100
-      if (percentage > 100 || duration > 0) {
-        percentage = 100;
-      }
+        // convert timestampElapsed to minutes/seconds
+        const timeElapsedConv = moment.duration(timestampElapsed);
+        let timeElapsed = '';
+        if (timeElapsedConv.minutes() > 0) {
+          timeElapsed = timeElapsedConv.minutes() + 'm ' + timeElapsedConv.seconds() + 's';
+        } else {
+          timeElapsed = timeElapsedConv.seconds() + 's';
+        }
 
-      // display any error
-      if (error) {
-        resultOutput = (
-          <p>Error: {error}</p>
-        );
-      } else {
+        //console.log('timeElapsed (since timestamp): ', timeElapsed);
 
-        // duration
+        // convert duration to minutes/seconds
+        const durationMin = moment.duration(duration).minutes();
+        const durationSec = moment.duration(duration).seconds();
+        const durationConv = durationMin + 'm ' + durationSec + 's';
+
         if (duration > 0) {
-          durationText = `Build time: ${durationConv}`;
+          endTimestamp = timestamp + ((durationMin * 60) + durationSec);
+          endTimestampConv = moment(endTimestamp).add(durationMin, 'm').add(durationSec, 's').format('MMM D, YYYY; h:mm:ss A');
+        }
+
+        // convert estimatedDuration to minutes/seconds
+        const estimatedDurationTempConv = moment.duration(estimatedDuration);
+        const estimatedDurationConv = estimatedDurationTempConv.minutes() + 'm ' + estimatedDurationTempConv.seconds() + 's';
+
+
+        if (loading) {
+          branchRows = (
+            <p className="loading-container"><img className="loadingImg" src={loadingImg} alt="Loading..."/></p>
+          );
         } else {
-          durationText = `(estimate: ${estimatedDurationConv})`;
-        }
 
-        let percentageText = `${percentage}%`
-        let barClassName = 'bar';
-        let barTopRightRadius = 0;
-        let barBottomRightRadius = 0;
-        let percentageColor = '#000';
-        let showTimeElapsed = true;
+          // get percentage (using time started and estimated duration)
+          percentage = Math.round((new Date().getTime() - timestamp) / estimatedDuration * 100);
 
-        //percentage = 35; // for testing
+          // limit percentage to 100
+          if (percentage > 100 || duration > 0) {
+            percentage = 100;
+          }
 
-        if (percentage === 100 && result === 'SUCCESS') {
-          barTopRightRadius = 5;
-          barBottomRightRadius = 5;
-          barClassName = 'bar-success';
-          resultText = 'COMPLETE';
-          showTimeElapsed = false;
+          // display any error
+          if (error) {
+            branchRows = (
+              <p>Error: {error}</p>
+            );
+          } else {
 
-        } else if (percentage > 80 && result !== 'SUCCESS' && result !== 'FAILURE' && result !== 'ABORTED') {
-          resultText = 'DEPLOYING';
+            let percentageText = `${percentage}%`
+            let barClassName = 'bar';
+            let barTopRightRadius = 0;
+            let barBottomRightRadius = 0;
+            let percentageColor = '#000';
 
-        } else if (percentage === 100 && result !== 'SUCCESS' && result !== 'FAILURE' && result !== 'ABORTED') { // estimatedDuration passed
-          barTopRightRadius = 5;
-          barBottomRightRadius = 5;
-          resultText = 'STILL DEPLOYING...';
-          percentageText = 'Please wait...';
+            if (percentage === 100 && result === 'SUCCESS') {
+              barTopRightRadius = 5;
+              barBottomRightRadius = 5;
+              barClassName = 'bar-success';
+              resultText = `<strong>Ended:</strong> ${endTimestampConv} (${durationConv})`;
+              percentageText = 'SUCCESS';
 
-        } else if (result === 'FAILURE') {
-          barTopRightRadius = 5;
-          barBottomRightRadius = 5;
-          barClassName = 'bar-failure';
-          resultText = 'BUILD FAILED';
-          percentageText = resultText;
-          showTimeElapsed = false;
+            } else if (percentage > 80 && result !== 'SUCCESS' && result !== 'FAILURE' && result !== 'ABORTED') {
+              resultText = `<strong>Status:</strong> Deploying: ${timeElapsed} (est. ${estimatedDurationConv})`;
 
-        } else if (result === 'ABORTED') {
-          barTopRightRadius = 5;
-          barBottomRightRadius = 5;
-          barClassName = 'bar-aborted';
-          resultText = 'ABORTED';
-          percentageText = resultText;
-          showTimeElapsed = false;
+            } else if (percentage === 100 && result !== 'SUCCESS' && result !== 'FAILURE' && result !== 'ABORTED') { // estimatedDuration passed
+              barTopRightRadius = 5;
+              barBottomRightRadius = 5;
+              resultText = `<strong>Status:</strong> Still Deploying: ${timeElapsed}`;
+              percentageText = 'ALMOST DONE...';
 
-        } else {
-          resultText = 'BUILDING';
-        }
+            } else if (result === 'FAILURE') {
+              barTopRightRadius = 5;
+              barBottomRightRadius = 5;
+              barClassName = 'bar-failure';
+              resultText = `<strong>Ended:</strong> ${endTimestampConv} (${durationConv})`;
+              percentageText = 'FAILED';
 
-        let barStyle = {
-          width: `${percentage}%`,
-          zIndex: 1,
-          borderTopRightRadius: `${barTopRightRadius}px`,
-          borderBottomRightRadius: `${barBottomRightRadius}px`,
-        };
+            } else if (result === 'ABORTED') {
+              barTopRightRadius = 5;
+              barBottomRightRadius = 5;
+              barClassName = 'bar-aborted';
+              resultText = `<strong>Ended:</strong> ${endTimestampConv} (${durationConv})`;
+              percentageText = 'ABORTED';
 
-        if (percentage >= 55) {
-          percentageColor = '#fff';
-        }
+            } else {
+              resultText = `<strong>Status:</strong> Building: ${timeElapsed} (est. ${estimatedDurationConv})`;
+            }
 
-        let percentageStyle = {
-          color: `${percentageColor}`,
-        };
+            let barStyle = {
+              width: `${percentage}%`,
+              zIndex: 1,
+              borderTopRightRadius: `${barTopRightRadius}px`,
+              borderBottomRightRadius: `${barBottomRightRadius}px`,
+            };
 
-        // place a wbr tag in hostname so it can wrap decently
-        let hostStr = host;
-        hostStr = hostStr.replace('.clearlink', '<wbr/>.clearlink');
+            if (percentage >= 55) {
+              percentageColor = '#fff';
+            }
 
-        function outputHTMLStr(str) { return {__html: str}; };
+            let percentageStyle = {
+              color: `${percentageColor}`,
+            };
 
-        let endTimestampText = '';
+            // place a wbr tag in hostname so it can wrap decently
+            hostStr = host;
+            hostStr = hostStr.replace('.clearlink', '<wbr/>.clearlink');
 
-        if (showTimeElapsed === true) {
-          timeElapsedText = `Time elapsed: ${timeElapsed}, `;
-        } else {
-          endTimestampText = `<strong>Ended:</strong> ${endTimestampConv}<br />`;
-        }
+            let rowClassName = `branch-row branch-${branchName}`;
 
-        resultOutput = (
-          <div>
-            <div className="status-container">
-              <div className="host">
-                <div dangerouslySetInnerHTML={outputHTMLStr(hostStr)} />
-              </div>
+            branchRows[r] = (
+              <div className={rowClassName}>
 
-              <div className="vsep"></div>
-
-              <div className="status-areas">
-                <div className="status-left">
-                  <strong>Branch:</strong> {project}/{branch} <br />
-                  <strong>Started:</strong> {timestampConv}<br />
-                  <div dangerouslySetInnerHTML={outputHTMLStr(endTimestampText)} />
-                  <strong>Status:</strong> {resultText}<br />
-                </div>
-                <div className="status-right">
-                  <div className="build-number">
-                    #{number}
+                <div className="status-areas">
+                  <div className="status-left">
+                    <strong>Branch:</strong> <span className="branch-name">{project}/{branchName}</span><br />
+                    <strong>Started:</strong> {timestampConv}<br />
+                    <div dangerouslySetInnerHTML={outputHTMLStr(resultText)}/>
+                  </div>
+                  <div className="status-right">
+                    <div className="build-number">
+                      #{number}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="vsep"></div>
+                <div className="progress">
+                  <div className="percentage" style={percentageStyle}>{percentageText}</div>
+                  <div className={barClassName} style={barStyle}></div>
+                </div>
 
-              <div className="duration">
-                {timeElapsedText} {durationText}
-              </div>
-              <div className="progress">
-                <div className="percentage" style={percentageStyle}>{percentageText}</div>
-                <div className={barClassName} style={barStyle}></div>
-              </div>
-            </div>
+                <div className="commits-container">
+                  Commit info:<br />
+                  <JSONTree data={commits} invertTheme={true} />
+                </div>
 
-            <div className="commits-container">
-              Commit info:<br />
-              <JSONTree data={commits} invertTheme={true} />
-            </div>
-          </div>
-        );
+                <div className="branch-sep"></div>
+              </div>
+            );
+          }
+        }
       }
     }
 
     return (
       <div className="BuildStatus">
-        {resultOutput}
+        <div className="status-container">
+          <div className="host">
+            <div dangerouslySetInnerHTML={outputHTMLStr(hostStr)} />
+          </div>
+
+          <div className="vsep"></div>
+
+          {branchRows}
+        </div>
       </div>
     );
   }
