@@ -1,8 +1,9 @@
 import { h, Component } from 'preact';
-import JSONTree from 'react-json-tree'
+import TreeView from 'react-treeview';
 import loadingImg from '../images/loading.svg';
 import moment from 'moment';
 import '../css/BuildStatus.css';
+import '../css/TreeView.css';
 
 class BuildStatus extends Component {
   constructor(props) {
@@ -46,7 +47,7 @@ class BuildStatus extends Component {
     })
     .then((data) => {
 
-      console.log("API response (status): ", data);
+      console.log(`API response (${option}): `, data);
 
       // check for API response error messages
       if (({}.toString.call(data.messages) === '[object Object]')) {
@@ -135,7 +136,6 @@ class BuildStatus extends Component {
       return {__html: str};
     };
 
-    let commits = [];
     let branchRows = [];
     let hostStr = '';
 
@@ -143,7 +143,7 @@ class BuildStatus extends Component {
 
       let branchName = '';
       for (let r = 0; r < 4; r+=1) {
-
+        let commits = [];
         let lastBuild = {};
 
         if (r === 0) {
@@ -296,7 +296,7 @@ class BuildStatus extends Component {
 
                 <div className="status-areas">
                   <div className="status-left">
-                    <strong>Branch:</strong> <span className="branch-name">{project}/{branchName}</span><br />
+                    <strong>Branch:</strong> <span className="branch-name">{project}/{branchName}</span> <span className="build-number-sm">#{number}</span><br />
                     <strong>Started:</strong> {timestampConv}<br />
                     <div dangerouslySetInnerHTML={outputHTMLStr(resultText)}/>
                   </div>
@@ -313,8 +313,54 @@ class BuildStatus extends Component {
                 </div>
 
                 <div className="commits-container">
-                  Commit info:<br />
-                  <JSONTree data={commits} invertTheme={true} />
+                  <TreeView key='root' nodeLabel='Commits' defaultCollapsed={true}>
+
+                    {commits.length > 0 ? '' : (<div className="no-commits">No new commits are applied for this build.</div>)}
+
+                    {commits.map((node, i) => {
+                      const label = <span className="node">Set {i + 1}</span>;
+
+                      return (
+                        <TreeView key={i} nodeLabel={label} defaultCollapsed={true}>
+                          {node.items.map((item, j) => {
+                            const commitId = item.commitId.substring(0, 7);
+                            const label2 = <span className="node"><span className="commitId">{commitId}</span>: {item.msg}</span>;
+                            const commitDate = moment(item.date).format('MMM D, YYYY; h:mm:ss A');
+                            //const commitDate = item.date;
+
+                            return (
+                              <TreeView nodeLabel={label2} key={j} defaultCollapsed={true}>
+                                <div className="info-container">
+                                  <div className="info"><span className="label-author">Author:</span> {item.authorEmail}
+                                  </div>
+                                  <div className="info"><span className="label-date">Date:</span> {commitDate}</div>
+                                  <div className="info"><span className="label-files">Files Changed:</span></div>
+                                  <div className="files-container">
+                                    {item.paths.map((path, k) => {
+
+                                      let editTypeSym = '';
+
+                                      if (path.editType === 'add') {
+                                        editTypeSym = <span className="type-add">+</span>;
+                                      } else if (path.editType === 'edit') {
+                                        editTypeSym = <span className="type-edit">✎</span>;
+                                      } else if (path.editType === 'delete') {
+                                        editTypeSym = <span className="type-delete">-</span>;
+                                      }
+
+                                      return (
+                                        <div className="file">{editTypeSym} {path.file}</div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              </TreeView>
+                            );
+                          })}
+                        </TreeView>
+                      );
+                    })}
+                  </TreeView>
                 </div>
 
                 <div className="branch-sep"></div>

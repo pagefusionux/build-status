@@ -948,7 +948,7 @@ babel-register@^6.24.1:
     mkdirp "^0.5.1"
     source-map-support "^0.4.2"
 
-babel-runtime@6.23.0, babel-runtime@^6.18.0, babel-runtime@^6.22.0, babel-runtime@^6.6.1:
+babel-runtime@6.23.0, babel-runtime@^6.18.0, babel-runtime@^6.22.0:
   version "6.23.0"
   resolved "https://npm.clearlink.com/babel-runtime/-/babel-runtime-6.23.0.tgz#0a9489f144de70efb3ce4300accdb329e2fc543b"
   dependencies:
@@ -999,10 +999,6 @@ balanced-match@^0.4.2:
 balanced-match@^1.0.0:
   version "1.0.0"
   resolved "https://npm.clearlink.com/balanced-match/-/balanced-match-1.0.0.tgz#89b4d199ab2bee49de164ea02b89ce462d71b767"
-
-base16@^1.0.0:
-  version "1.0.0"
-  resolved "https://npm.clearlink.com/base16/-/base16-1.0.0.tgz#e297f60d7ec1014a7a971a39ebc8a98c0b681e70"
 
 base64-js@^1.0.2:
   version "1.2.0"
@@ -3817,17 +3813,9 @@ lodash.cond@^4.3.0:
   version "4.5.2"
   resolved "https://npm.clearlink.com/lodash.cond/-/lodash.cond-4.5.2.tgz#f471a1da486be60f6ab955d17115523dd1d255d5"
 
-lodash.curry@^4.0.1:
-  version "4.1.1"
-  resolved "https://npm.clearlink.com/lodash.curry/-/lodash.curry-4.1.1.tgz#248e36072ede906501d75966200a86dab8b23170"
-
 lodash.defaults@^4.2.0:
   version "4.2.0"
   resolved "https://npm.clearlink.com/lodash.defaults/-/lodash.defaults-4.2.0.tgz#d09178716ffea4dde9e5fb7b37f6f0802274580c"
-
-lodash.flow@^3.3.0:
-  version "3.5.0"
-  resolved "https://npm.clearlink.com/lodash.flow/-/lodash.flow-3.5.0.tgz#87bf40292b8cf83e4e8ce1a3ae4209e20071675a"
 
 lodash.memoize@^4.1.2:
   version "4.1.2"
@@ -4942,10 +4930,6 @@ punycode@^1.2.4, punycode@^1.4.1:
   version "1.4.1"
   resolved "https://npm.clearlink.com/punycode/-/punycode-1.4.1.tgz#c0d5a63b2718800ad8e1eb0fa5269c84dd41845e"
 
-pure-color@^1.2.0:
-  version "1.2.0"
-  resolved "https://npm.clearlink.com/pure-color/-/pure-color-1.2.0.tgz#702d2f2819dd545b1fde5116fca5f0c2dad2d18d"
-
 q@^1.1.2:
   version "1.5.0"
   resolved "https://npm.clearlink.com/q/-/q-1.5.0.tgz#dd01bac9d06d30e6f219aecb8253ee9ebdc308f1"
@@ -5003,15 +4987,6 @@ rc@^1.0.1, rc@^1.1.6, rc@^1.1.7:
     minimist "^1.2.0"
     strip-json-comments "~2.0.1"
 
-react-base16-styling@^0.5.1:
-  version "0.5.3"
-  resolved "https://npm.clearlink.com/react-base16-styling/-/react-base16-styling-0.5.3.tgz#3858f24e9c4dd8cbd3f702f3f74d581ca2917269"
-  dependencies:
-    base16 "^1.0.0"
-    lodash.curry "^4.0.1"
-    lodash.flow "^3.3.0"
-    pure-color "^1.2.0"
-
 react-dev-utils@^3.0.0:
   version "3.0.0"
   resolved "https://npm.clearlink.com/react-dev-utils/-/react-dev-utils-3.0.0.tgz#3677f37718ba0cae892ba9c01fe54d1622e6ef7c"
@@ -5054,13 +5029,11 @@ react-error-overlay@^1.0.7:
     settle-promise "1.0.0"
     source-map "0.5.6"
 
-react-json-tree@^0.10.9:
-  version "0.10.9"
-  resolved "https://npm.clearlink.com/react-json-tree/-/react-json-tree-0.10.9.tgz#7263173a2cc8bf05eac63b0419c3ce75b232e284"
+react-treeview@^0.4.7:
+  version "0.4.7"
+  resolved "https://npm.clearlink.com/react-treeview/-/react-treeview-0.4.7.tgz#f647e04f70496eb11fb0912c35187e80eb60d458"
   dependencies:
-    babel-runtime "^6.6.1"
     prop-types "^15.5.8"
-    react-base16-styling "^0.5.1"
 
 react@^15.6.1:
   version "15.6.1"
