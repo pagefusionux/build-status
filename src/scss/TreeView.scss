@@ -83,16 +83,11 @@
   border-bottom: #eee 1px solid;
 }
 
-.type-add {
-  color: #00cc00;
-}
-
-.type-edit {
-  color: #1C8CD0;
-}
-
-.type-delete {
-  color: #EA1713;
+.type-add, .type-edit, .type-delete {
+  img {
+    width: 10px;
+    height: 10px;
+  }
 }
 
 .no-commits {

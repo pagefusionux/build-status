@@ -1,0 +1,159 @@
+.build-status {
+
+  .status-container {
+    margin: 0 auto;
+    margin-bottom: 20px;
+    width: auto;
+    background-color: #eee;
+    border-radius: 10px;
+    padding: 20px;
+
+    @media (min-width: 640px) {
+      width: 450px;
+    }
+
+    .host {
+      font-size: 1.5em;
+      font-weight: bold;
+      color: #555;
+      margin-bottom: 15px;
+    }
+
+    .vsep {
+      width: 100%;
+      height: 0;
+      border-top: #ddd 1px solid;
+      border-bottom: #fff 1px solid;
+    }
+
+    .branch-row {
+
+      .branch-sep {
+        width: 100%;
+        height: 0;
+        border-top: #ddd 1px solid;
+        border-bottom: #fff 1px solid;
+        margin-top: 10px;
+        margin-bottom: 10px;
+      }
+
+      &.branch-production {
+        .branch-sep {
+          display: none;
+        }
+      }
+
+      .status-areas {
+        position: relative;
+        display: flex;
+        flex-flow: row wrap;
+        justify-content: space-between;
+        margin-top: 10px;
+        margin-bottom: 10px;
+
+        .status-left {
+          text-align: left;
+          line-height: 1.3em;
+
+          .branch-name {
+            color: blue;
+          }
+
+          .build-number-sm {
+            display: inline;
+            color: #aaa;
+
+            @media (min-width: 420px) {
+              display: none;
+            }
+          }
+        }
+
+        .status-right {
+          display: none;
+
+          @media (min-width: 420px) {
+            display: block;
+          }
+
+          .build-number {
+            font-size: 2.5em;
+            line-height: 1em;
+            color: #ccc;
+            width: auto;
+          }
+        }
+      }
+
+
+
+    } // .branch-row
+  } // .status-container
+} // .build-status
+
+
+
+
+
+
+
+
+
+
+
+
+.commits-container {
+  font-size: 14px;
+  color: #555;
+  text-align: left;
+  margin: 0 auto;
+  margin-top: 5px;
+  width: auto;
+}
+
+
+
+
+
+
+
+
+
+@media (max-width: 420px) {
+  .status-right {
+    display: none;
+  }
+
+  .build-number-sm {
+    display: inline;
+  }
+}
+
+.loading-container {
+  text-align: center;
+}
+
+.loadingImg {
+  width: 50px;
+  height: 50px
+}
+
+.loadingImgSm {
+  width: 16px;
+  height: 16px
+}
+
+
+
+
+
+
+
+.duration {
+  margin-top: 5px;
+  margin-bottom: 5px;
+  color: #aaa;
+  font-size: .8em;
+}
+
+

@@ -1,6 +1,6 @@
 import { h, Component } from 'preact';
 import BuildStatus from './BuildStatus';
-import '../css/App.css';
+import '../scss/App.css';
 
 class App extends Component {
   render() {

@@ -1,16 +1,20 @@
 import { h, Component } from 'preact';
+import ProgressBar from './ProgressBar';
 import TreeView from 'react-treeview';
 import loadingImg from '../images/loading.svg';
+import addImg from '../images/add.svg';
+import editImg from '../images/edit.svg';
+import deleteImg from '../images/delete.svg';
 import moment from 'moment';
-import '../css/BuildStatus.css';
-import '../css/TreeView.css';
+import '../scss/BuildStatus.css';
+import '../scss/TreeView.css';
 
 class BuildStatus extends Component {
   constructor(props) {
     super(props);
 
     this.bapiUrl = 'http://localhost.buildapi'; // location of the API that queries the Jenkins build server
-    this.overrideHost = 'west.frontier.com'; // for testing (override window.location.host)
+    this.overrideHost = 'attsavings.com'; // for testing (override window.location.host)
 
     this.state = {
       loading: 1,
@@ -29,7 +33,12 @@ class BuildStatus extends Component {
     let host = window.location.host;
     let error = '';
 
-    if (this.overrideHost) {
+    const pathArray = window.location.pathname.split('/');
+    const segment1 = pathArray[1];
+
+    if (segment1.length > 0) {
+      host = segment1;
+    } else if (this.overrideHost) {
       host = this.overrideHost;
     }
 
@@ -127,7 +136,7 @@ class BuildStatus extends Component {
     let {
       error,
       loading,
-      project,
+      //project,
       host,
       branches,
     } = this.state;
@@ -246,7 +255,7 @@ class BuildStatus extends Component {
             } else if (percentage > 80 && result !== 'SUCCESS' && result !== 'FAILURE' && result !== 'ABORTED') {
               resultText = `<strong>Status:</strong> Deploying: ${timeElapsed} (est. ${estimatedDurationConv})`;
 
-            } else if (percentage === 100 && result !== 'SUCCESS' && result !== 'FAILURE' && result !== 'ABORTED') { // estimatedDuration passed
+            } else if (percentage >= 100 && result !== 'SUCCESS' && result !== 'FAILURE' && result !== 'ABORTED') { // estimatedDuration passed
               barTopRightRadius = 5;
               barBottomRightRadius = 5;
               resultText = `<strong>Status:</strong> Still Deploying: ${timeElapsed}`;
@@ -277,7 +286,7 @@ class BuildStatus extends Component {
               borderBottomRightRadius: `${barBottomRightRadius}px`,
             };
 
-            if (percentage >= 55) {
+            if (percentage >= 50) {
               percentageColor = '#fff';
             }
 
@@ -296,7 +305,7 @@ class BuildStatus extends Component {
 
                 <div className="status-areas">
                   <div className="status-left">
-                    <strong>Branch:</strong> <span className="branch-name">{project}/{branchName}</span> <span className="build-number-sm">#{number}</span><br />
+                    <strong>Branch:</strong> <span className="branch-name">{branchName}</span> <span className="build-number-sm">(Build #{number})</span><br />
                     <strong>Started:</strong> {timestampConv}<br />
                     <div dangerouslySetInnerHTML={outputHTMLStr(resultText)}/>
                   </div>
@@ -307,10 +316,19 @@ class BuildStatus extends Component {
                   </div>
                 </div>
 
+
+                <ProgressBar
+                  percentageStyle={percentageStyle}
+                  percentageText={percentageText}
+                  barClassName={barClassName}
+                  barStyle={barStyle}
+                />
+                {/*
                 <div className="progress">
                   <div className="percentage" style={percentageStyle}>{percentageText}</div>
                   <div className={barClassName} style={barStyle}></div>
                 </div>
+                */}
 
                 <div className="commits-container">
                   <TreeView key='root' nodeLabel='Commits' defaultCollapsed={true}>
@@ -341,11 +359,11 @@ class BuildStatus extends Component {
                                       let editTypeSym = '';
 
                                       if (path.editType === 'add') {
-                                        editTypeSym = <span className="type-add">+</span>;
+                                        editTypeSym = <span className="type-add"><img src={addImg} alt="File added." /></span>;
                                       } else if (path.editType === 'edit') {
-                                        editTypeSym = <span className="type-edit">✎</span>;
+                                        editTypeSym = <span className="type-edit"><img src={editImg} alt="File edited." /></span>;
                                       } else if (path.editType === 'delete') {
-                                        editTypeSym = <span className="type-delete">-</span>;
+                                        editTypeSym = <span className="type-delete"><img src={deleteImg} alt="File deleted." /></span>;
                                       }
 
                                       return (
@@ -372,7 +390,7 @@ class BuildStatus extends Component {
     }
 
     return (
-      <div className="BuildStatus">
+      <div className="build-status">
         <div className="status-container">
           <div className="host">
             <div dangerouslySetInnerHTML={outputHTMLStr(hostStr)} />
