@@ -1,95 +1,107 @@
-/* the tree node's style */
-.tree-view {
-  overflow-y: hidden;
-}
+/*
+ * TreeView (Commits Info)
+ */
 
-.tree-view_item {
-  /* immediate child of .tree-view, for styling convenience */
-}
+.commits-container {
 
-/* style for the children nodes container */
-.tree-view_children {
-  margin-left: 16px;
-}
+  .no-commits {
+    color: #aaa;
+  }
 
-.tree-view_children-collapsed {
-  height: 0px;
-}
+  .tree-view {
+    overflow-y: hidden;
 
-.tree-view_arrow {
-  cursor: pointer;
-  margin-right: 6px;
-  display: inline-block;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
-}
+    .tree-view_item {
+      /* immediate child of .tree-view, for styling convenience */
+    }
 
-.tree-view_arrow:after {
-  content: '▾';
-}
+    .tree-view_children {
+      margin-left: 16px;
 
-/* rotate the triangle to close it */
-.tree-view_arrow-collapsed {
-  -webkit-transform: rotate(-90deg);
-  -moz-transform: rotate(-90deg);
-  -ms-transform: rotate(-90deg);
-  transform: rotate(-90deg);
-}
+      .node {
+        font-size: 14px;
+      }
 
-.commitId {
-  display: inline-block;
-  font-size: 12px;
-  line-height: 15px;
-  font-family: courier, courier-new, sans-serif;
-  color: #fff;
-  background-color: #555;
-  border-radius: 3px;
-  padding: 1px 3px;
-}
+      .commitId {
+        display: inline-block;
+        font-size: 12px;
+        line-height: 15px;
+        font-family: courier, courier-new, sans-serif;
+        color: #fff;
+        background-color: #555;
+        border-radius: 3px;
+        padding: 1px 3px;
+      }
 
-.node {
-  font-size: 14px;
-}
+      .info-container {
+        line-height: 18px;
+        padding-bottom: 5px;
 
-.node-files {
-  font-weight: bold;
-  font-size: 13px;
-}
+        .info {
+          font-size: 13px;
 
-.info-container {
-  line-height: 18px;
-  padding-bottom: 5px;
-}
+          .label-author, .label-date, .label-files {
+            font-weight: bold;
+          }
+        }
 
-.info {
-  font-size: 13px;
-}
+        .files-container {
+          width: auto;
+          background-color: #fff;
 
-.label-author, .label-date, .label-files {
-  font-weight: bold;
-}
+          .file {
+            padding-left: 5px;
+            line-height: 18px;
+            font-size: 13px;
+            border-bottom: #eee 1px solid;
 
-.files-container {
-  width: auto;
-  background-color: #fff;
-}
+            .type-add, .type-edit, .type-delete {
+              img {
+                width: 10px;
+                height: 10px;
+              }
+            }
+          }
+        }
+      }
+    }
 
-.file {
-  padding-left: 5px;
-  line-height: 18px;
-  font-size: 13px;
-  border-bottom: #eee 1px solid;
-}
+    .tree-view_children-collapsed {
+      height: 0px;
+    }
 
-.type-add, .type-edit, .type-delete {
-  img {
-    width: 10px;
-    height: 10px;
+    .tree-view_arrow {
+      cursor: pointer;
+      margin-right: 6px;
+      display: inline-block;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+
+      &:after {
+        content: '▾';
+      }
+    }
+
+    /* rotate the triangle to close it */
+    .tree-view_arrow-collapsed {
+      -webkit-transform: rotate(-90deg);
+      -moz-transform: rotate(-90deg);
+      -ms-transform: rotate(-90deg);
+      transform: rotate(-90deg);
+    }
   }
 }
 
-.no-commits {
-  color: #aaa;
-}
+
+
+
+
+
+
+
+
+
+
+

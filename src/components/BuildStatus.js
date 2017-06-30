@@ -13,13 +13,14 @@ class BuildStatus extends Component {
   constructor(props) {
     super(props);
 
-    this.bapiUrl = 'http://localhost.buildapi'; // location of the API that queries the Jenkins build server
+    this.bapiUrl = 'http://buildstatus.clear.link/bapi'; // location of the API that queries the Jenkins build server
+    this.bapiDevUrl = 'http://localhost.buildapi';
     this.overrideHost = 'attsavings.com'; // for testing (override window.location.host)
 
     this.state = {
       loading: 1,
       error: '',
-      host: window.location.host,
+      host: '',
       project: '',
       branches: [],
       commitsHotfix: [],
@@ -29,20 +30,53 @@ class BuildStatus extends Component {
     }
   }
 
+  getParameterByName(name, url) {
+    if (!url) url = window.location.href;
+
+    // eslint-disable-next-line
+    name = name.replace(/[\[\]]/g, "\\$&");
+
+    const regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+      results = regex.exec(url);
+
+    if (!results) return null;
+
+    if (!results[2]) return '';
+
+    return decodeURIComponent(results[2].replace(/\+/g, " "));
+  }
+
   getStatus(option) {
     let host = window.location.host;
+    let bapiUrl = this.bapiUrl;
     let error = '';
 
+    // if apache redirects used (.htaccess), get host name from URL path (e.g. http://[where.this.is.hosted]/west.frontier.com)
     const pathArray = window.location.pathname.split('/');
     const segment1 = pathArray[1];
 
-    if (segment1.length > 0) {
-      host = segment1;
-    } else if (this.overrideHost) {
-      host = this.overrideHost;
+    // get host parameter from query string
+    let hostParam = this.getParameterByName('host');
+    if (!hostParam) {
+      hostParam = '';
     }
 
-    fetch(`${this.bapiUrl}?host=${host}&option=${option}`)
+    if (segment1.length > 0) { // apache redirect mod must be setup to work
+      host = segment1;
+    } else if (hostParam.length > 0) {
+      host = hostParam;
+    } else if (this.overrideHost.length > 0) {
+      host = this.overrideHost;
+    } else {
+      host = 'attsavings.com'; // default
+    }
+
+    // testing environment
+    if (window.location.host === 'localhost:3000') {
+      bapiUrl = this.bapiDevUrl;
+    }
+
+    fetch(`${bapiUrl}?host=${host}&option=${option}`)
     .then((response) => {
 
       if (this.state.loading) {
@@ -56,7 +90,7 @@ class BuildStatus extends Component {
     })
     .then((data) => {
 
-      console.log(`API response (${option}): `, data);
+      //console.log(`API response (${option}): `, data);
 
       // check for API response error messages
       if (({}.toString.call(data.messages) === '[object Object]')) {
@@ -343,8 +377,7 @@ class BuildStatus extends Component {
                           {node.items.map((item, j) => {
                             const commitId = item.commitId.substring(0, 7);
                             const label2 = <span className="node"><span className="commitId">{commitId}</span>: {item.msg}</span>;
-                            const commitDate = moment(item.date).format('MMM D, YYYY; h:mm:ss A');
-                            //const commitDate = item.date;
+                            const commitDate = moment(item.date, 'YYYY-MM-DD HH:mm:ss ZZ').format('MMM D, YYYY; h:mm:ss A');
 
                             return (
                               <TreeView nodeLabel={label2} key={j} defaultCollapsed={true}>
@@ -387,6 +420,10 @@ class BuildStatus extends Component {
           }
         }
       }
+    }
+
+    if (!hostStr) {
+      hostStr = 'Loading...';
     }
 
     return (
