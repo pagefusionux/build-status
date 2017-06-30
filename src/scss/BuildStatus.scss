@@ -26,6 +26,10 @@
       border-bottom: #fff 1px solid;
     }
 
+    .error-container {
+      color: #cc0000;
+    }
+
     .branch-row {
 
       .branch-sep {
@@ -111,14 +115,6 @@
   width: auto;
 }
 
-
-
-
-
-
-
-
-
 @media (max-width: 420px) {
   .status-right {
     display: none;
@@ -142,12 +138,6 @@
   width: 16px;
   height: 16px
 }
-
-
-
-
-
-
 
 .duration {
   margin-top: 5px;

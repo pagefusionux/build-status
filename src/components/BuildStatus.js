@@ -16,6 +16,8 @@ class BuildStatus extends Component {
 
     this.state = {
       loading: 1,
+      apiConnected: false,
+      bapiUrlUsed: this.bapiUrl,
       error: '',
       host: '',
       project: '',
@@ -73,16 +75,12 @@ class BuildStatus extends Component {
       bapiUrl = this.bapiDevUrl;
     }
 
+    this.setState({
+      bapiUrlUsed: bapiUrl,
+    });
+
     fetch(`${bapiUrl}?host=${host}&option=${option}`)
     .then((response) => {
-
-      if (this.state.loading) {
-        setTimeout(() => {
-          this.setState({
-            loading: 0
-          });
-        }, 300);
-      }
       return response.json();
     })
     .then((data) => {
@@ -107,6 +105,7 @@ class BuildStatus extends Component {
 
         if (option === 'status-commits') {
           this.setState({
+            loading: 0,
             error: null,
             host: data.host,
             project: data.project,
@@ -118,12 +117,14 @@ class BuildStatus extends Component {
           });
         } else {
           this.setState({
+            loading: 0,
             error: null,
             host: data.host,
             project: data.project,
             branches: data.branches,
           });
         }
+
         let continueToUpdateStatus = 1;
 
         if ((data.branches.hotfix.lastBuild.result === 'SUCCESS' || data.branches.hotfix.lastBuild.result === 'FAILURE' || data.branches.hotfix.lastBuild.result === 'ABORTED')
@@ -134,11 +135,11 @@ class BuildStatus extends Component {
             &&
             (data.branches.production.lastBuild.result === 'SUCCESS' || data.branches.production.lastBuild.result === 'FAILURE' || data.branches.production.lastBuild.result === 'ABORTED')) {
 
-              continueToUpdateStatus = 0;
+          continueToUpdateStatus = 0;
         }
 
         if (continueToUpdateStatus === 1) {
-          setTimeout(() => { // update every 3 seconds
+          setTimeout(() => { // update every 3 seconds (if we're updating progress bars)
               this.getStatus('status');
             }, 5000
           );
@@ -148,6 +149,11 @@ class BuildStatus extends Component {
             }, 30000
           );
         }
+
+        this.setState({
+          apiConnected: true,
+          showApiConnectedMsg: false,
+        });
       }
 
     })
@@ -158,8 +164,25 @@ class BuildStatus extends Component {
     })
   }
 
+  checkApiConnected() {
+    if (this.state.apiConnected === false) {
+      this.setState({
+        error: `API failed to connect. Check to see that the build-api service at ${this.state.bapiUrlUsed} is available.`,
+      });
+    }
+  }
+
   componentDidMount() {
-    this.getStatus('status-commits');
+
+    setTimeout(() => { // check after app load if API connected
+      this.getStatus('status-commits');
+      }, 500
+    );
+
+    setTimeout(() => { // check after app load if API connected
+        this.checkApiConnected();
+      }, 7000
+    );
   };
 
   render() {
@@ -174,7 +197,7 @@ class BuildStatus extends Component {
 
     function outputHTMLStr(str) {
       return {__html: str};
-    };
+    }
 
     let branchRows = [];
     let hostStr = '';
@@ -248,124 +271,121 @@ class BuildStatus extends Component {
         const estimatedDurationTempConv = moment.duration(estimatedDuration);
         const estimatedDurationConv = estimatedDurationTempConv.minutes() + 'm ' + estimatedDurationTempConv.seconds() + 's';
 
+        // get percentage (using time started and estimated duration)
+        percentage = Math.round((new Date().getTime() - timestamp) / estimatedDuration * 100);
 
-        if (loading) {
-          branchRows = (
-            <p className="loading-container"><img className="loadingImg" src={loadingImg} alt="Loading..."/></p>
-          );
-        } else {
-
-          // get percentage (using time started and estimated duration)
-          percentage = Math.round((new Date().getTime() - timestamp) / estimatedDuration * 100);
-
-          // limit percentage to 100
-          if (percentage > 100 || duration > 0) {
-            percentage = 100;
-          }
-
-          // display any error
-          if (error) {
-            branchRows = (
-              <p>Error: {error}</p>
-            );
-          } else {
-
-            let percentageText = `${percentage}%`
-            let barClassName = 'bar';
-            let barTopRightRadius = 0;
-            let barBottomRightRadius = 0;
-            let percentageColor = '#000';
-
-            if (percentage === 100 && result === 'SUCCESS') {
-              barTopRightRadius = 5;
-              barBottomRightRadius = 5;
-              barClassName = 'bar-success';
-              resultText = `<strong>Ended:</strong> ${endTimestampConv} (${durationConv})`;
-              percentageText = 'SUCCESS';
-
-            } else if (percentage > 80 && result !== 'SUCCESS' && result !== 'FAILURE' && result !== 'ABORTED') {
-              resultText = `<strong>Status:</strong> Deploying: ${timeElapsed} (est. ${estimatedDurationConv})`;
-
-            } else if (percentage >= 100 && result !== 'SUCCESS' && result !== 'FAILURE' && result !== 'ABORTED') { // estimatedDuration passed
-              barTopRightRadius = 5;
-              barBottomRightRadius = 5;
-              resultText = `<strong>Status:</strong> Still Deploying: ${timeElapsed}`;
-              percentageText = 'ALMOST DONE...';
-
-            } else if (result === 'FAILURE') {
-              barTopRightRadius = 5;
-              barBottomRightRadius = 5;
-              barClassName = 'bar-failure';
-              resultText = `<strong>Ended:</strong> ${endTimestampConv} (${durationConv})`;
-              percentageText = 'FAILED';
-
-            } else if (result === 'ABORTED') {
-              barTopRightRadius = 5;
-              barBottomRightRadius = 5;
-              barClassName = 'bar-aborted';
-              resultText = `<strong>Ended:</strong> ${endTimestampConv} (${durationConv})`;
-              percentageText = 'ABORTED';
-
-            } else {
-              resultText = `<strong>Status:</strong> Building: ${timeElapsed} (est. ${estimatedDurationConv})`;
-            }
-
-            let barStyle = {
-              width: `${percentage}%`,
-              zIndex: 1,
-              borderTopRightRadius: `${barTopRightRadius}px`,
-              borderBottomRightRadius: `${barBottomRightRadius}px`,
-            };
-
-            if (percentage >= 50) {
-              percentageColor = '#fff';
-            }
-
-            let percentageStyle = {
-              color: `${percentageColor}`,
-            };
-
-            // place a wbr tag in hostname so it can wrap decently
-            hostStr = host;
-            hostStr = hostStr.replace('.clearlink', '<wbr/>.clearlink');
-
-            let rowClassName = `branch-row branch-${branchName}`;
-
-            branchRows[r] = (
-              <div className={rowClassName}>
-
-                <div className="status-areas">
-                  <div className="status-left">
-                    <strong>Branch:</strong> <span className="branch-name">{branchName}</span> <span className="build-number-sm">(Build #{number})</span><br />
-                    <strong>Started:</strong> {timestampConv}<br />
-                    <div dangerouslySetInnerHTML={outputHTMLStr(resultText)}/>
-                  </div>
-                  <div className="status-right">
-                    <div className="build-number">
-                      #{number}
-                    </div>
-                  </div>
-                </div>
-
-                <ProgressBar
-                  percentageStyle={percentageStyle}
-                  percentageText={percentageText}
-                  barClassName={barClassName}
-                  barStyle={barStyle}
-                />
-
-                <TreeViewArea commits={commits} />
-
-                <div className="branch-sep"></div>
-              </div>
-            );
-          }
+        // limit percentage to 100
+        if (percentage > 100 || duration > 0) {
+          percentage = 100;
         }
+
+        let percentageText = `${percentage}%`
+        let barClassName = 'bar';
+        let barTopRightRadius = 0;
+        let barBottomRightRadius = 0;
+        let percentageColor = '#000';
+
+        if (percentage === 100 && result === 'SUCCESS') {
+          barTopRightRadius = 5;
+          barBottomRightRadius = 5;
+          barClassName = 'bar-success';
+          resultText = `<strong>Ended:</strong> ${endTimestampConv} (${durationConv})`;
+          percentageText = 'SUCCESS';
+
+        } else if (percentage > 80 && result !== 'SUCCESS' && result !== 'FAILURE' && result !== 'ABORTED') {
+          resultText = `<strong>Status:</strong> Deploying: ${timeElapsed} (est. ${estimatedDurationConv})`;
+
+        } else if (percentage >= 100 && result !== 'SUCCESS' && result !== 'FAILURE' && result !== 'ABORTED') { // estimatedDuration passed
+          barTopRightRadius = 5;
+          barBottomRightRadius = 5;
+          resultText = `<strong>Status:</strong> Still Deploying: ${timeElapsed}`;
+          percentageText = 'ALMOST DONE...';
+
+        } else if (result === 'FAILURE') {
+          barTopRightRadius = 5;
+          barBottomRightRadius = 5;
+          barClassName = 'bar-failure';
+          resultText = `<strong>Ended:</strong> ${endTimestampConv} (${durationConv})`;
+          percentageText = 'FAILED';
+
+        } else if (result === 'ABORTED') {
+          barTopRightRadius = 5;
+          barBottomRightRadius = 5;
+          barClassName = 'bar-aborted';
+          resultText = `<strong>Ended:</strong> ${endTimestampConv} (${durationConv})`;
+          percentageText = 'ABORTED';
+
+        } else {
+          resultText = `<strong>Status:</strong> Building: ${timeElapsed} (est. ${estimatedDurationConv})`;
+        }
+
+        let barStyle = {
+          width: `${percentage}%`,
+          zIndex: 1,
+          borderTopRightRadius: `${barTopRightRadius}px`,
+          borderBottomRightRadius: `${barBottomRightRadius}px`,
+        };
+
+        if (percentage >= 50) {
+          percentageColor = '#fff';
+        }
+
+        let percentageStyle = {
+          color: `${percentageColor}`,
+        };
+
+        // place a wbr tag in hostname so it can wrap decently
+        hostStr = host;
+        hostStr = hostStr.replace('.clearlink', '<wbr/>.clearlink');
+
+        let rowClassName = `branch-row branch-${branchName}`;
+
+        branchRows[r] = (
+          <div className={rowClassName}>
+
+            <div className="status-areas">
+              <div className="status-left">
+                <strong>Branch:</strong> <span className="branch-name">{branchName}</span> <span className="build-number-sm">(Build #{number})</span><br />
+                <strong>Started:</strong> {timestampConv}<br />
+                <div dangerouslySetInnerHTML={outputHTMLStr(resultText)}/>
+              </div>
+              <div className="status-right">
+                <div className="build-number">
+                  #{number}
+                </div>
+              </div>
+            </div>
+
+            <ProgressBar
+              percentageStyle={percentageStyle}
+              percentageText={percentageText}
+              barClassName={barClassName}
+              barStyle={barStyle}
+            />
+
+            <TreeViewArea commits={commits} />
+
+            <div className="branch-sep"></div>
+          </div>
+        );
       }
     }
 
     if (!hostStr) {
       hostStr = 'Loading...';
+    }
+
+    if (loading) {
+      branchRows = (
+        <p className="loading-container"><img className="loadingImg" src={loadingImg} alt="Loading..."/></p>
+      );
+    }
+
+    if (error) {
+      hostStr = 'Error';
+      branchRows = (
+        <p className="error-container">{error}</p>
+      );
     }
 
     return (
