@@ -109,12 +109,33 @@ class BuildStatus extends Component {
             error: null,
             host: data.host,
             project: data.project,
-            branches: data.branches,
-            commitsHotfix: data.branches.hotfix.lastBuild.changeSets,
-            commitsDev: data.branches.dev.lastBuild.changeSets,
-            commitsRelease: data.branches.release.lastBuild.changeSets,
-            commitsProd: data.branches.production.lastBuild.changeSets,
+            branches: data.branches
           });
+
+          if (typeof data.branches.hotfix.lastBuild.changeSets !== 'undefined') {
+            this.setState({
+              commitsHotfix: data.branches.hotfix.lastBuild.changeSets
+            });
+          }
+
+          if (typeof data.branches.dev.lastBuild.changeSets !== 'undefined') {
+            this.setState({
+              commitsDev: data.branches.dev.lastBuild.changeSets
+            });
+          }
+
+          if (typeof data.branches.release.lastBuild.changeSets !== 'undefined') {
+            this.setState({
+              commitsRelease: data.branches.release.lastBuild.changeSets
+            });
+          }
+
+          if (typeof data.branches.production.lastBuild.changeSets !== 'undefined') {
+            this.setState({
+              commitsProd: data.branches.production.lastBuild.changeSets
+            });
+          }
+
         } else {
           this.setState({
             loading: 0,
@@ -199,175 +220,200 @@ class BuildStatus extends Component {
       return {__html: str};
     }
 
+    let rowClassName = '';
+    let branchNames = ['hotfix', 'dev', 'release', 'production'];
     let branchRows = [];
     let hostStr = '';
+    let branchName = '';
 
-    if (typeof branches.hotfix !== 'undefined') {
+    // loop through the four branch types and output associated row HTML
+    if (branches.hotfix) {
 
-      let branchName = '';
-      for (let r = 0; r < 4; r+=1) {
+      //branches.production.lastBuild = null;
+
+      for (let r = 0; r < 4; r += 1) {
+
         let commits = [];
         let lastBuild = {};
 
-        if (r === 0) {
-          lastBuild = branches.hotfix.lastBuild;
-          commits = this.state.commitsHotfix;
-          branchName = 'hotfix';
-        } else if (r === 1) {
-          lastBuild = branches.dev.lastBuild;
-          commits = this.state.commitsDev;
-          branchName = 'dev';
-        } else if (r === 2) {
-          lastBuild = branches.release.lastBuild;
-          commits = this.state.commitsRelease;
-          branchName = 'release';
-        } else if (r === 3) {
-          lastBuild = branches.production.lastBuild;
-          commits = this.state.commitsProd;
-          branchName = 'production';
-        }
+        branchName = branchNames[r];
+        rowClassName = `branch-row branch-${branchName}`;
 
-        //console.log('lastBuild', lastBuild);
+        if (branches[branchName].lastBuild) {
 
-        let number = lastBuild.number;
-        let result = lastBuild.result;
-        let timestamp = lastBuild.timestamp;
-        let estimatedDuration = lastBuild.estimatedDuration;
-        let duration = lastBuild.duration;
+          if (r === 0) { // todo: tighten this stuff up (repetitive)
+            commits = this.state.commitsHotfix;
+          } else if (r === 1) {
+            commits = this.state.commitsDev;
+          } else if (r === 2) {
+            commits = this.state.commitsRelease;
+          } else if (r === 3) {
+            commits = this.state.commitsProd;
+          }
 
-        let percentage = 0;
-        let resultText = '';
-        let endTimestamp = 0;
-        let endTimestampConv = '';
+          lastBuild = branches[branchName].lastBuild;
 
-        // convert timestamp to readable date
-        const timestampConv = moment(timestamp).format('MMM D, YYYY; h:mm:ss A');
+          let number = lastBuild.number;
+          let result = lastBuild.result;
+          let timestamp = lastBuild.timestamp;
+          let estimatedDuration = lastBuild.estimatedDuration;
+          let duration = lastBuild.duration;
 
-        // compare now() to timestamp; convert timeElapsed to minutes/seconds
-        const timestampElapsed = new Date().getTime() - timestamp;
+          let percentage = 0;
+          let resultText = '';
+          let endTimestamp = 0;
+          let endTimestampConv = '';
 
-        // convert timestampElapsed to minutes/seconds
-        const timeElapsedConv = moment.duration(timestampElapsed);
-        let timeElapsed = '';
-        if (timeElapsedConv.minutes() > 0) {
-          timeElapsed = timeElapsedConv.minutes() + 'm ' + timeElapsedConv.seconds() + 's';
-        } else {
-          timeElapsed = timeElapsedConv.seconds() + 's';
-        }
+          // convert timestamp to readable date
+          const timestampConv = moment(timestamp).format('MMM D, YYYY; h:mm:ss A');
 
-        //console.log('timeElapsed (since timestamp): ', timeElapsed);
+          // compare now() to timestamp; convert timeElapsed to minutes/seconds
+          const timestampElapsed = new Date().getTime() - timestamp;
 
-        // convert duration to minutes/seconds
-        const durationMin = moment.duration(duration).minutes();
-        const durationSec = moment.duration(duration).seconds();
-        const durationConv = durationMin + 'm ' + durationSec + 's';
+          // convert timestampElapsed to minutes/seconds
+          const timeElapsedConv = moment.duration(timestampElapsed);
+          let timeElapsed = '';
+          if (timeElapsedConv.minutes() > 0) {
+            timeElapsed = timeElapsedConv.minutes() + 'm ' + timeElapsedConv.seconds() + 's';
+          } else {
+            timeElapsed = timeElapsedConv.seconds() + 's';
+          }
 
-        if (duration > 0) {
-          endTimestamp = timestamp + ((durationMin * 60) + durationSec);
-          endTimestampConv = moment(endTimestamp).add(durationMin, 'm').add(durationSec, 's').format('MMM D, YYYY; h:mm:ss A');
-        }
+          //console.log('timeElapsed (since timestamp): ', timeElapsed);
 
-        // convert estimatedDuration to minutes/seconds
-        const estimatedDurationTempConv = moment.duration(estimatedDuration);
-        const estimatedDurationConv = estimatedDurationTempConv.minutes() + 'm ' + estimatedDurationTempConv.seconds() + 's';
+          // convert duration to minutes/seconds
+          const durationMin = moment.duration(duration).minutes();
+          const durationSec = moment.duration(duration).seconds();
+          const durationConv = durationMin + 'm ' + durationSec + 's';
 
-        // get percentage (using time started and estimated duration)
-        percentage = Math.round((new Date().getTime() - timestamp) / estimatedDuration * 100);
+          if (duration > 0) {
+            endTimestamp = timestamp + ((durationMin * 60) + durationSec);
+            endTimestampConv = moment(endTimestamp).add(durationMin, 'm').add(durationSec, 's').format('MMM D, YYYY; h:mm:ss A');
+          }
 
-        // limit percentage to 100
-        if (percentage > 100 || duration > 0) {
-          percentage = 100;
-        }
+          // convert estimatedDuration to minutes/seconds
+          const estimatedDurationTempConv = moment.duration(estimatedDuration);
+          const estimatedDurationConv = estimatedDurationTempConv.minutes() + 'm ' + estimatedDurationTempConv.seconds() + 's';
 
-        let percentageText = `${percentage}%`
-        let barClassName = 'bar';
-        let barTopRightRadius = 0;
-        let barBottomRightRadius = 0;
-        let percentageColor = '#000';
+          // get percentage (using time started and estimated duration)
+          percentage = Math.round((new Date().getTime() - timestamp) / estimatedDuration * 100);
 
-        if (percentage === 100 && result === 'SUCCESS') {
-          barTopRightRadius = 5;
-          barBottomRightRadius = 5;
-          barClassName = 'bar-success';
-          resultText = `<strong>Ended:</strong> ${endTimestampConv} (${durationConv})`;
-          percentageText = 'SUCCESS';
+          // limit percentage to 100
+          if (percentage > 100 || duration > 0) {
+            percentage = 100;
+          }
 
-        } else if (percentage > 80 && result !== 'SUCCESS' && result !== 'FAILURE' && result !== 'ABORTED') {
-          resultText = `<strong>Status:</strong> Deploying: ${timeElapsed} (est. ${estimatedDurationConv})`;
+          let percentageText = `${percentage}%`
+          let barClassName = 'bar';
+          let barTopRightRadius = 0;
+          let barBottomRightRadius = 0;
+          let percentageColor = '#000';
 
-        } else if (percentage >= 100 && result !== 'SUCCESS' && result !== 'FAILURE' && result !== 'ABORTED') { // estimatedDuration passed
-          barTopRightRadius = 5;
-          barBottomRightRadius = 5;
-          resultText = `<strong>Status:</strong> Still Deploying: ${timeElapsed}`;
-          percentageText = 'ALMOST DONE...';
+          if (percentage === 100 && result === 'SUCCESS') {
+            barTopRightRadius = 5;
+            barBottomRightRadius = 5;
+            barClassName = 'bar-success';
+            resultText = `<strong>Ended:</strong> ${endTimestampConv} (${durationConv})`;
+            percentageText = 'SUCCESS';
 
-        } else if (result === 'FAILURE') {
-          barTopRightRadius = 5;
-          barBottomRightRadius = 5;
-          barClassName = 'bar-failure';
-          resultText = `<strong>Ended:</strong> ${endTimestampConv} (${durationConv})`;
-          percentageText = 'FAILED';
+          } else if (percentage > 80 && result !== 'SUCCESS' && result !== 'FAILURE' && result !== 'ABORTED') {
+            resultText = `<strong>Status:</strong> Deploying: ${timeElapsed} (est. ${estimatedDurationConv})`;
 
-        } else if (result === 'ABORTED') {
-          barTopRightRadius = 5;
-          barBottomRightRadius = 5;
-          barClassName = 'bar-aborted';
-          resultText = `<strong>Ended:</strong> ${endTimestampConv} (${durationConv})`;
-          percentageText = 'ABORTED';
+          } else if (percentage >= 100 && result !== 'SUCCESS' && result !== 'FAILURE' && result !== 'ABORTED') { // estimatedDuration passed
+            barTopRightRadius = 5;
+            barBottomRightRadius = 5;
+            resultText = `<strong>Status:</strong> Still Deploying: ${timeElapsed}`;
+            percentageText = 'ALMOST DONE...';
 
-        } else {
-          resultText = `<strong>Status:</strong> Building: ${timeElapsed} (est. ${estimatedDurationConv})`;
-        }
+          } else if (result === 'FAILURE') {
+            barTopRightRadius = 5;
+            barBottomRightRadius = 5;
+            barClassName = 'bar-failure';
+            resultText = `<strong>Ended:</strong> ${endTimestampConv} (${durationConv})`;
+            percentageText = 'FAILED';
 
-        let barStyle = {
-          width: `${percentage}%`,
-          zIndex: 1,
-          borderTopRightRadius: `${barTopRightRadius}px`,
-          borderBottomRightRadius: `${barBottomRightRadius}px`,
-        };
+          } else if (result === 'ABORTED') {
+            barTopRightRadius = 5;
+            barBottomRightRadius = 5;
+            barClassName = 'bar-aborted';
+            resultText = `<strong>Ended:</strong> ${endTimestampConv} (${durationConv})`;
+            percentageText = 'ABORTED';
 
-        if (percentage >= 50) {
-          percentageColor = '#fff';
-        }
+          } else {
+            resultText = `<strong>Status:</strong> Building: ${timeElapsed} (est. ${estimatedDurationConv})`;
+          }
 
-        let percentageStyle = {
-          color: `${percentageColor}`,
-        };
+          let barStyle = {
+            width: `${percentage}%`,
+            zIndex: 1,
+            borderTopRightRadius: `${barTopRightRadius}px`,
+            borderBottomRightRadius: `${barBottomRightRadius}px`,
+          };
 
-        // place a wbr tag in hostname so it can wrap decently
-        hostStr = host;
-        hostStr = hostStr.replace('.clearlink', '<wbr/>.clearlink');
+          if (percentage >= 50) {
+            percentageColor = '#fff';
+          }
 
-        let rowClassName = `branch-row branch-${branchName}`;
+          let percentageStyle = {
+            color: `${percentageColor}`,
+          };
 
-        branchRows[r] = (
-          <div className={rowClassName}>
+          // place a wbr tag in hostname so it can wrap decently
+          hostStr = host;
+          hostStr = hostStr.replace('.clearlink', '<wbr/>.clearlink');
 
-            <div className="status-areas">
-              <div className="status-left">
-                <strong>Branch:</strong> <span className="branch-name">{branchName}</span> <span className="build-number-sm">(Build #{number})</span><br />
-                <strong>Started:</strong> {timestampConv}<br />
-                <div dangerouslySetInnerHTML={outputHTMLStr(resultText)}/>
-              </div>
-              <div className="status-right">
-                <div className="build-number">
-                  #{number}
+
+          branchRows[r] = (
+            <div className={rowClassName}>
+
+              <div className="status-areas">
+                <div className="status-left">
+                  <strong>Branch:</strong> <span className="branch-name">{branchName}</span> <span
+                  className="build-number-sm">(Build #{number})</span><br />
+                  <strong>Started:</strong> {timestampConv}<br />
+                  <div dangerouslySetInnerHTML={outputHTMLStr(resultText)}/>
+                </div>
+                <div className="status-right">
+                  <div className="build-number">
+                    #{number}
+                  </div>
                 </div>
               </div>
+
+              <ProgressBar
+                percentageStyle={percentageStyle}
+                percentageText={percentageText}
+                barClassName={barClassName}
+                barStyle={barStyle}
+              />
+
+              <TreeViewArea commits={commits}/>
+
+              <div className="branch-sep"></div>
             </div>
+          );
+        } else {
+          // branch has not been built yet
+          branchRows[r] = (
+            <div className={rowClassName}>
 
-            <ProgressBar
-              percentageStyle={percentageStyle}
-              percentageText={percentageText}
-              barClassName={barClassName}
-              barStyle={barStyle}
-            />
+              <div className="status-areas">
+                <div className="status-left">
+                  <strong>Branch:</strong> <span className="branch-name">{branchName}</span> <span
+                  className="build-number-sm">(Build #0)</span><br />
+                  <strong>Status:</strong> Awaiting first build.
+                </div>
+                <div className="status-right">
+                  <div className="build-number">
+                    #0
+                  </div>
+                </div>
+              </div>
 
-            <TreeViewArea commits={commits} />
-
-            <div className="branch-sep"></div>
-          </div>
-        );
+              <div className="branch-sep"></div>
+            </div>
+          );
+        }
       }
     }
 
