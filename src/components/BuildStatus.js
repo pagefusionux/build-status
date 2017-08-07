@@ -188,7 +188,7 @@ class BuildStatus extends Component {
   checkApiConnected() {
     if (this.state.apiConnected === false) {
       this.setState({
-        error: `API failed to connect. Check to see that the build-api service at ${this.state.bapiUrlUsed} is available.`,
+        error: `API failed to return output. Check to see that all branches (hotfix, dev, release, production) have been built out successfully (at least once) for this host.`,
       });
     }
   }
